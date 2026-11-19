@@ -124,6 +124,8 @@ class Engine:
 
     @staticmethod
     def passes(a, r, ev, f):
+        if f.get("sp500_only") and not a.get("sp500"):
+            return False
         if f.get("markets") and a["market"] not in f["markets"]:
             return False
         if f.get("types") and a["type"] not in f["types"]:
@@ -160,6 +162,7 @@ class Engine:
         return {
             "symbol": a["symbol"], "name": a["name"], "market": a["market"], "type": a["type"],
             "sector": a["sector"], "currency": a["currency"], "as_of": a["as_of"],
+            "sp500": bool(a.get("sp500")),
             "price": q.get("price"), "change_pct": q.get("change_pct"),
             "score": ev["score"], "raw_score": ev["raw_score"], "penalty": ev["penalty"],
             "label": ev["label"], "label_key": ev["label_key"],

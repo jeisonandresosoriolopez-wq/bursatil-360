@@ -121,7 +121,13 @@
               <h2>Ranking multifactor del universo</h2>
               <p class="card-desc">Ordenado por score compuesto (0-100) tras penalizaciones. Haz clic en un activo para ver su ficha. Marca ☐ para añadirlo a la cartera.</p>
             </div>
-            <input type="search" id="search-box" class="search" placeholder="Buscar ticker, nombre o sector…" />
+            <div class="row-gap">
+              <label class="chip-check"><input type="checkbox" id="sp500-only" /> Solo S&amp;P 500 (503)</label>
+              <select id="sector-filter" class="inline-select">
+                <option value="">Todos los sectores</option>
+              </select>
+              <input type="search" id="search-box" class="search" placeholder="Buscar ticker, nombre o sector…" />
+            </div>
           </div>
           <div class="table-wrap">
             <table class="rank-table">

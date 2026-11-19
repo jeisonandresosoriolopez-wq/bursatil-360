@@ -44,6 +44,20 @@ NUMERIC_FIELDS = [
     "esg_risk", "controversy", "ter", "aum_bn",
 ]
 
+GICS_TO_SECTOR = {
+    "Communication Services": "Comunicación e Internet",
+    "Consumer Discretionary": "Consumo discrecional",
+    "Consumer Staples": "Consumo básico",
+    "Energy": "Energía",
+    "Financials": "Banca",
+    "Health Care": "Salud",
+    "Industrials": "Industria e Infraestructura",
+    "Information Technology": "Tecnología",
+    "Materials": "Materiales",
+    "Real Estate": "Inmobiliario",
+    "Utilities": "Utilities",
+}
+
 
 def _get_json(url: str, timeout: float = 8.0):
     req = urllib.request.Request(url, headers=UA)
@@ -82,6 +96,30 @@ def load_universe():
                     issues.append(f"{a['symbol']}: valor no numérico en {k} ('{v}'), tratado como faltante")
                     a["f"][k] = None
             assets.append(a)
+
+    # Añadir las ~503 acciones del S&P 500 desde data/sp500.csv (sin sobrescribir las que ya tienen fundamentales)
+    sp500_path = DATA_DIR / "sp500.csv"
+    if sp500_path.exists():
+        by_sym = {a["symbol"]: a for a in assets}
+        with open(sp500_path, encoding="utf-8") as fh:
+            for row in csv.DictReader(fh):
+                sym = row["Symbol"].strip().replace(".", "-")
+                if sym in by_sym:
+                    by_sym[sym]["sp500"] = True
+                    continue
+                sector = GICS_TO_SECTOR.get(row["GICS Sector"].strip(), "Industria e Infraestructura")
+                assets.append({
+                    "symbol": sym,
+                    "name": row["Security"].strip(),
+                    "market": "EEUU",
+                    "type": "accion",
+                    "sector": sector,
+                    "currency": "USD",
+                    "as_of": "solo precio",
+                    "sp500": True,
+                    "f": {k: None for k in NUMERIC_FIELDS},
+                })
+
     sectors = json.loads((DATA_DIR / "sectors.json").read_text(encoding="utf-8"))
     sectors.pop("_doc", None)
     macro = json.loads((DATA_DIR / "macro.json").read_text(encoding="utf-8"))
@@ -155,38 +193,49 @@ class MarketData:
         return sym, cached  # degradación: usa caché antigua si existe
 
     def refresh_history(self):
-        with ThreadPoolExecutor(max_workers=8) as ex:
-            results = list(ex.map(self._load_one_history, self.symbols))
-        with self.lock:
-            for sym, h in results:
+        with ThreadPoolExecutor(max_workers=12) as ex:
+            for i, (sym, h) in enumerate(ex.map(self._load_one_history, self.symbols), start=1):
                 if h:
-                    self.history[sym] = h
+                    with self.lock:
+                        self.history[sym] = h
+                if i % 60 == 0:
+                    with self.lock:
+                        self.version += 1
+        with self.lock:
             self.version += 1
             self.hist_version += 1
         self.history_ready.set()
 
     # --- cotizaciones
+    def _fetch_quote_chunk(self, chunk):
+        url = ("https://query1.finance.yahoo.com/v7/finance/spark?symbols="
+               + urllib.parse.quote(",".join(chunk), safe=",") + "&range=1d&interval=1d")
+        out = {}
+        try:
+            data = _get_json(url, timeout=8)
+            for item in data.get("spark", {}).get("result", []):
+                resp = (item.get("response") or [{}])[0]
+                m = resp.get("meta", {})
+                if m.get("regularMarketPrice") is None:
+                    continue
+                out[item["symbol"]] = {
+                    "price": float(m["regularMarketPrice"]),
+                    "change_pct": float(m.get("regularMarketChangePercent") or 0.0),
+                    "market_time": m.get("regularMarketTime"),
+                    "currency": m.get("currency"),
+                }
+            return out, False
+        except (urllib.error.URLError, TimeoutError, ValueError, KeyError, IndexError, TypeError):
+            return out, True
+
     def refresh_quotes(self):
         new = {}
         chunks = [self.symbols[i:i + 20] for i in range(0, len(self.symbols), 20)]
-        for chunk in chunks:
-            url = ("https://query1.finance.yahoo.com/v7/finance/spark?symbols="
-                   + urllib.parse.quote(",".join(chunk), safe=",") + "&range=1d&interval=1d")
-            try:
-                data = _get_json(url, timeout=8)
-                for item in data.get("spark", {}).get("result", []):
-                    resp = (item.get("response") or [{}])[0]
-                    m = resp.get("meta", {})
-                    if m.get("regularMarketPrice") is None:
-                        continue
-                    new[item["symbol"]] = {
-                        "price": float(m["regularMarketPrice"]),
-                        "change_pct": float(m.get("regularMarketChangePercent") or 0.0),
-                        "market_time": m.get("regularMarketTime"),
-                        "currency": m.get("currency"),
-                    }
-            except (urllib.error.URLError, TimeoutError, ValueError, KeyError, IndexError, TypeError):
-                self.quote_errors += 1
+        with ThreadPoolExecutor(max_workers=8) as ex:
+            for out, err in ex.map(self._fetch_quote_chunk, chunks):
+                new.update(out)
+                if err:
+                    self.quote_errors += 1
         with self.lock:
             if new:
                 self.quotes.update(new)

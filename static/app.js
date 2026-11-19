@@ -54,6 +54,7 @@ function currentParams() {
     regime_on: state.regimeOn,
     weights: state.customWeights,
     filters: {
+      sp500_only: $("sp500-only").checked,
       markets,
       types,
       currencies,
@@ -103,6 +104,9 @@ function buildSidebar() {
     .join("");
   $("sector-checks").innerHTML = m.sectors
     .map((x) => `<label><input type="checkbox" value="${x}" /> ${x}</label>`)
+    .join("");
+  $("sector-filter").innerHTML = `<option value="">Todos los sectores</option>` + m.sectors
+    .map((x) => `<option value="${x}">${x}</option>`)
     .join("");
 
   renderWeightsSliders();
@@ -191,7 +195,8 @@ async function refreshScores() {
 
 function renderTopbar(data) {
   const st = data.status;
-  $("status-text").textContent = `${st.with_quote}/${st.assets} en vivo · ${st.history_ready ? "histórico OK" : "cargando…"}`;
+  const histTxt = st.history_ready ? "histórico OK" : `${st.with_history}/${st.assets} hist.`;
+  $("status-text").textContent = `${st.with_quote}/${st.assets} en vivo · ${histTxt}`;
   $("last-updated").textContent = data.updated_at.split(" ")[1] || data.updated_at;
 
   const r = data.regime;
@@ -219,8 +224,11 @@ function renderEffectiveWeights(data) {
 // ------------------------------------------------ Ranking Tab
 function renderRanking(data) {
   const q = ($("search-box").value || "").trim().toLowerCase();
+  const sec = $("sector-filter").value;
   const list = data.assets.filter(
-    (a) => !q || a.symbol.toLowerCase().includes(q) || a.name.toLowerCase().includes(q) || a.sector.toLowerCase().includes(q)
+    (a) =>
+      (!sec || a.sector === sec) &&
+      (!q || a.symbol.toLowerCase().includes(q) || a.name.toLowerCase().includes(q) || a.sector.toLowerCase().includes(q))
   );
 
   const favN = list.filter((a) => a.label_key === "fav").length;
@@ -678,6 +686,8 @@ $("refresh-now-btn").addEventListener("click", () => {
   refreshScores();
 });
 $("search-box").addEventListener("input", () => state.scores && renderRanking(state.scores));
+$("sector-filter").addEventListener("change", () => state.scores && renderRanking(state.scores));
+$("sp500-only").addEventListener("change", refreshScores);
 $("asset-select").addEventListener("change", (e) => {
   state.selectedSymbol = e.target.value;
   loadAsset(state.selectedSymbol);

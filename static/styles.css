@@ -181,6 +181,10 @@ a:hover { text-decoration: underline; }
   background: var(--bg-elevated); color: var(--text-primary);
   border: 1px solid var(--border); border-radius: 8px; padding: 7px 11px; font-size: 0.82rem; min-width: 240px; outline: none;
 }
+.inline-select {
+  background: var(--bg-elevated); color: var(--text-primary);
+  border: 1px solid var(--border); border-radius: 8px; padding: 6px 9px; font-size: 0.8rem; outline: none;
+}
 
 .summary-row, .kpi-row {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px;

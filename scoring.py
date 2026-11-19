@@ -315,6 +315,8 @@ def effective_weights(base, horizon, objective, regime, regime_on=True):
 
 # ------------------------------------------------------------------ evaluación de un activo
 def _months_since(as_of, today):
+    if not as_of or as_of == "solo precio":
+        return None
     try:
         y, m = (int(x) for x in as_of.split("-")[:2])
         return (today.year - y) * 12 + (today.month - m)
@@ -372,7 +374,7 @@ def auto_flags(asset, r, today):
         out.append({"severity": "info", "penalty": 0, "auto": True,
                     "text": "Beneficio negativo: el PER no es significativo."})
     months = _months_since(asset.get("as_of"), today)
-    if asset_class(asset) != "cripto" and months > 12:
+    if asset_class(asset) != "cripto" and months is not None and months > 12:
         out.append({"severity": "info", "penalty": 0, "auto": True,
                     "text": f"Fundamentales con {months} meses de antigüedad: actualiza fundamentals.csv."})
     return out
@@ -446,7 +448,7 @@ def evaluate(asset, r, stats, sectors, weights, manual_flags, today=None, detail
         conf -= r["analyst_dispersion"] * 20
         reasons.append("Discrepancia significativa entre analistas")
     months = _months_since(asset.get("as_of"), today)
-    if asset_class(asset) != "cripto" and months > 3:
+    if asset_class(asset) != "cripto" and months is not None and months > 3:
         conf -= min(20, months - 3)
         reasons.append(f"Fundamentales con {months} meses de antigüedad")
     if r.get("vol_1y") is None:

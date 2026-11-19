@@ -14,6 +14,8 @@
   "Utilities":                 {"pe": 16, "pb": 1.8, "ev_ebitda": 10, "op_margin": 22, "rate": -0.8, "infl": 0.0,  "cycle": -0.4, "defensive": 0.8,  "bench": "XLU"},
   "Telecomunicaciones":        {"pe": 14, "pb": 1.8, "ev_ebitda": 6.5, "op_margin": 15, "rate": -0.6, "infl": -0.1, "cycle": -0.2, "defensive": 0.5,  "bench": "IXP"},
   "Industria e Infraestructura": {"pe": 21, "pb": 3.5, "ev_ebitda": 13, "op_margin": 11, "rate": -0.3, "infl": 0.2,  "cycle": 0.7,  "defensive": -0.1, "bench": "XLI"},
+  "Materiales":                {"pe": 18, "pb": 2.6, "ev_ebitda": 10, "op_margin": 14, "rate": -0.2, "infl": 0.6,  "cycle": 0.7,  "defensive": -0.2, "bench": "XLB"},
+  "Inmobiliario":              {"pe": 32, "pb": 2.4, "ev_ebitda": 18, "op_margin": 25, "rate": -0.8, "infl": 0.3,  "cycle": 0.1,  "defensive": 0.3,  "bench": "XLRE"},
   "Pagos":                     {"pe": 28, "pb": 10.0, "ev_ebitda": 22, "op_margin": 55, "rate": -0.2, "infl": 0.3,  "cycle": 0.5,  "defensive": 0.2,  "bench": "IPAY"},
   "ETF RV EE.UU.":             {"pe": 24, "pb": 4.5, "rate": -0.3, "infl": -0.2, "cycle": 0.6, "defensive": 0.0,  "bench": "^GSPC"},
   "ETF RV Global":             {"pe": 21, "pb": 3.2, "rate": -0.3, "infl": -0.1, "cycle": 0.6, "defensive": 0.1,  "bench": "^GSPC"},
