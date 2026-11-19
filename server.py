@@ -417,10 +417,11 @@ class Handler(SimpleHTTPRequestHandler):
 
 
 def main():
+    host = os.environ.get("HOST", "0.0.0.0")
     port = int(os.environ.get("PORT", "8050"))
     ENGINE.md.start()
-    server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
-    print(f"Bursátil 360° (scoring multifactor) en http://127.0.0.1:{port}")
+    server = ThreadingHTTPServer((host, port), Handler)
+    print(f"Bursátil 360° (scoring multifactor) en http://{host}:{port}")
     server.serve_forever()
 
 
