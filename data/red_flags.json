@@ -1,0 +1,25 @@
+{
+  "_doc": "Red flags manuales (no derivables de los datos numéricos). severity: 'alta' | 'media' | 'info'. penalty: puntos restados del score compuesto. Revisa y actualiza periódicamente.",
+  "GRF.MC": [
+    {"severity": "alta", "penalty": 10, "text": "Informe de un vendedor en corto (Gotham City, 2024) cuestionó la contabilidad y la deuda real; revisión por parte del regulador (CNMV)."}
+  ],
+  "JNJ": [
+    {"severity": "media", "penalty": 3, "text": "Litigios relevantes abiertos (talco) con impacto potencial en caja."}
+  ],
+  "TSM": [
+    {"severity": "media", "penalty": 3, "text": "Riesgo geopolítico concentrado (Taiwán) no reflejado en las métricas financieras."}
+  ],
+  "NESN.SW": [
+    {"severity": "info", "penalty": 0, "text": "Cambios recientes en la alta dirección: la estabilidad de la estrategia es incierta."}
+  ],
+  "BTC-USD": [
+    {"severity": "info", "penalty": 0, "text": "Criptoactivo sin flujos de caja: no es valorable con métricas fundamentales; el score se basa solo en precio, riesgo y macro."}
+  ],
+  "ETH-USD": [
+    {"severity": "info", "penalty": 0, "text": "Criptoactivo sin flujos de caja: no es valorable con métricas fundamentales; el score se basa solo en precio, riesgo y macro."}
+  ],
+  "SOL-USD": [
+    {"severity": "info", "penalty": 0, "text": "Criptoactivo sin flujos de caja: no es valorable con métricas fundamentales; el score se basa solo en precio, riesgo y macro."},
+    {"severity": "media", "penalty": 3, "text": "Historial más corto y mayor concentración de la red que BTC/ETH."}
+  ]
+}

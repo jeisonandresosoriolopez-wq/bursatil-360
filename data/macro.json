@@ -1,0 +1,9 @@
+{
+  "_doc": "Variables macro que NO se obtienen en vivo. Actualízalas manualmente con la última publicación oficial (BLS para EE.UU., Eurostat para la zona euro). Tipos a 10 años, VIX, dólar y tendencia del S&P 500 se leen en vivo desde Yahoo Finance.",
+  "as_of": "2025-09",
+  "cpi_us": 2.9,
+  "cpi_eu": 2.1,
+  "pmi_global": 50.5,
+  "ecb_rate": 2.0,
+  "fed_rate": 4.25
+}

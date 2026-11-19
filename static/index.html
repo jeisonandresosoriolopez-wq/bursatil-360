@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bursátil 360° — Scoring multifactor explicable</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-logo">360°</div>
+      <div>
+        <h1>Bursátil 360°</h1>
+        <p class="subtitle">Scoring y ranking multifactor, transparente y explicable · uso personal</p>
+      </div>
+    </div>
+    <div class="regime-chips" id="regime-chips"></div>
+    <div class="topbar-controls">
+      <div class="status-pill" id="status-pill"><span class="pulse-dot"></span><span id="status-text">Conectando…</span></div>
+      <div class="refresh-box">
+        <div class="refresh-meta">
+          <span>Próx. actualización: <strong id="countdown-text">30s</strong></span>
+          <span class="muted" id="last-updated">--:--:--</span>
+        </div>
+        <div class="progress-track"><div class="progress-fill" id="countdown-bar"></div></div>
+      </div>
+      <button class="btn btn-secondary" id="toggle-auto-btn">Pausar</button>
+      <button class="btn btn-primary" id="refresh-now-btn">Actualizar</button>
+    </div>
+  </header>
+
+  <div class="disclaimer">
+    <strong>Herramienta informativa, no asesoramiento.</strong>
+    Las etiquetas describen el resultado de un modelo con los pesos que tú eliges; no son recomendaciones de compra o venta
+    ni consideran tu situación fiscal o patrimonial. Un score alto no garantiza rentabilidad.
+    <a href="#" data-goto="metodologia">Metodología y limitaciones</a>
+  </div>
+
+  <div class="layout">
+    <!-- ============ PANEL LATERAL: perfil, pesos y restricciones ============ -->
+    <aside class="sidebar">
+      <section class="side-card">
+        <h3>1 · Tu perfil</h3>
+        <label class="field">Tolerancia al riesgo
+          <select id="profile-select">
+            <option value="conservador">Conservador</option>
+            <option value="equilibrado" selected>Equilibrado</option>
+            <option value="agresivo">Agresivo</option>
+          </select>
+        </label>
+        <label class="field">Horizonte
+          <select id="horizon-select">
+            <option value="corto">Corto (&lt; 1 año)</option>
+            <option value="medio" selected>Medio (1-5 años)</option>
+            <option value="largo">Largo (&gt; 5 años)</option>
+          </select>
+        </label>
+        <label class="field">Objetivo
+          <select id="objective-select">
+            <option value="ingresos">Ingresos (dividendos)</option>
+            <option value="crecimiento" selected>Crecimiento</option>
+            <option value="preservacion">Preservación de capital</option>
+          </select>
+        </label>
+        <label class="check-row"><input type="checkbox" id="regime-toggle" checked /> Ajustar pesos por régimen de mercado</label>
+      </section>
+
+      <section class="side-card">
+        <div class="side-head">
+          <h3>2 · Pesos por pilar</h3>
+          <button class="link-btn" id="reset-weights">Restablecer</button>
+        </div>
+        <p class="hint">Peso base (editable) → <span class="eff-tag">efectivo</span> tras horizonte, objetivo y régimen.</p>
+        <div id="weights-box"></div>
+        <div class="applied-box" id="applied-box"></div>
+      </section>
+
+      <section class="side-card">
+        <h3>3 · Universo y restricciones</h3>
+        <div class="field-label">Mercado</div>
+        <div class="chip-checks" id="market-checks"></div>
+        <div class="field-label">Tipo de activo</div>
+        <div class="chip-checks" id="type-checks"></div>
+        <div class="field-label">Divisa</div>
+        <div class="chip-checks" id="currency-checks"></div>
+        <details class="sector-details">
+          <summary>Sectores excluidos <span id="excluded-count" class="muted"></span></summary>
+          <div id="sector-checks" class="sector-list"></div>
+        </details>
+        <div class="two-col">
+          <label class="field">Riesgo ESG máx.
+            <input type="number" id="esg-max" placeholder="sin límite" min="0" max="60" step="1" />
+          </label>
+          <label class="field">Capitaliz. mín. (bn$)
+            <input type="number" id="min-mcap" placeholder="0" min="0" step="10" />
+          </label>
+        </div>
+        <label class="field">Confianza mínima: <strong id="min-conf-label">0</strong>
+          <input type="range" id="min-conf" min="0" max="90" step="5" value="0" />
+        </label>
+      </section>
+    </aside>
+
+    <!-- ============ CONTENIDO PRINCIPAL ============ -->
+    <main class="main">
+      <nav class="tabs" id="tabs">
+        <button class="tab active" data-tab="ranking">Ranking</button>
+        <button class="tab" data-tab="ficha">Ficha del activo</button>
+        <button class="tab" data-tab="cartera">Cartera e interés compuesto</button>
+        <button class="tab" data-tab="backtest">Validación (backtest)</button>
+        <button class="tab" data-tab="metodologia">Metodología y limitaciones</button>
+      </nav>
+
+      <!-- RANKING -->
+      <section class="tab-panel active" id="panel-ranking">
+        <div class="summary-row" id="summary-row"></div>
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h2>Ranking multifactor del universo</h2>
+              <p class="card-desc">Ordenado por score compuesto (0-100) tras penalizaciones. Haz clic en un activo para ver su ficha. Marca ☐ para añadirlo a la cartera.</p>
+            </div>
+            <input type="search" id="search-box" class="search" placeholder="Buscar ticker, nombre o sector…" />
+          </div>
+          <div class="table-wrap">
+            <table class="rank-table">
+              <thead>
+                <tr>
+                  <th></th><th>#</th><th>Activo</th><th>Mercado · Tipo</th><th>Sector (posición)</th>
+                  <th>Precio</th><th>Var. día</th><th>Score</th><th>Lectura del modelo</th><th>Confianza</th>
+                  <th id="pillar-head">Pilares</th><th>Flags</th>
+                </tr>
+              </thead>
+              <tbody id="rank-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- FICHA -->
+      <section class="tab-panel" id="panel-ficha">
+        <div class="ficha-picker">
+          <label>Activo: <select id="asset-select"></select></label>
+          <button class="btn btn-secondary" id="add-to-portfolio-btn">Añadir a cartera</button>
+        </div>
+        <div id="ficha-content"><p class="muted pad">Selecciona un activo en el ranking.</p></div>
+      </section>
+
+      <!-- CARTERA -->
+      <section class="tab-panel" id="panel-cartera">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h2>Construcción de cartera</h2>
+              <p class="card-desc">Diversificación por correlaciones y dos esquemas de pesos: equiponderado y paridad de riesgo (inverso de la volatilidad, con tope por activo).</p>
+            </div>
+            <div class="row-gap">
+              <button class="btn btn-secondary" id="add-top-btn">Añadir top 8 favorables</button>
+              <button class="btn btn-secondary" id="clear-portfolio-btn">Vaciar</button>
+              <label class="inline-field">Tope por activo
+                <select id="max-weight"><option value="0.25">25%</option><option value="0.4" selected>40%</option><option value="1">Sin tope</option></select>
+              </label>
+            </div>
+          </div>
+          <div class="chips" id="portfolio-chips"></div>
+          <div id="portfolio-content"><p class="muted pad">Selecciona al menos 2 activos (casillas del ranking o botón superior).</p></div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h2>Proyección de interés compuesto por escenarios</h2>
+              <p class="card-desc">Las rentabilidades anuales son <strong>supuestos editables</strong>, no previsiones del modelo. Valores por defecto según tu perfil.</p>
+            </div>
+          </div>
+          <div class="calc-inputs">
+            <label class="field">Capital inicial
+              <input type="number" id="ci-initial" value="10000" min="0" step="500" /></label>
+            <label class="field">Aporte mensual
+              <input type="number" id="ci-monthly" value="300" min="0" step="50" /></label>
+            <label class="field">Años: <strong id="ci-years-label">15</strong>
+              <input type="range" id="ci-years" min="1" max="40" value="15" /></label>
+            <label class="field">Adverso (% anual)
+              <input type="number" id="ci-adv" step="0.5" /></label>
+            <label class="field">Base (% anual)
+              <input type="number" id="ci-base" step="0.5" /></label>
+            <label class="field">Favorable (% anual)
+              <input type="number" id="ci-fav" step="0.5" /></label>
+            <label class="field">Inflación (% anual)
+              <input type="number" id="ci-infl" value="2.5" step="0.1" /></label>
+            <label class="field">Costes (TER, % anual)
+              <input type="number" id="ci-fee" value="0.2" step="0.05" /></label>
+          </div>
+          <div class="kpi-row" id="ci-kpis"></div>
+          <div class="chart-box"><canvas id="ci-chart" height="260"></canvas></div>
+        </div>
+      </section>
+
+      <!-- BACKTEST -->
+      <section class="tab-panel" id="panel-backtest">
+        <div id="backtest-content"><p class="muted pad">Cargando backtest…</p></div>
+      </section>
+
+      <!-- METODOLOGÍA -->
+      <section class="tab-panel" id="panel-metodologia">
+        <div id="method-content"></div>
+      </section>
+    </main>
+  </div>
+
+  <div class="tooltip" id="tooltip"></div>
+  <script src="charts.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
