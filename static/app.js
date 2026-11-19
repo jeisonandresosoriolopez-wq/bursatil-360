@@ -21,6 +21,8 @@ const state = {
   countdown: REFRESH_INTERVAL,
   activeTab: "ranking",
   btLoaded: false,
+  page: 1,
+  pageSize: 50,
 };
 
 const $ = (id) => document.getElementById(id);
@@ -244,12 +246,18 @@ function renderRanking(data) {
     <div class="kpi-card"><span>Confianza media</span><strong>${avgConf}%</strong><small>cobertura y consistencia</small></div>
   `;
 
+  const totalPages = Math.max(1, Math.ceil(list.length / state.pageSize));
+  if (state.page > totalPages) state.page = totalPages;
+  const startIdx = (state.page - 1) * state.pageSize;
+  const pageList = list.slice(startIdx, startIdx + state.pageSize);
+
   const activePillars = Object.entries(data.weights)
     .filter(([, w]) => w > 0.01)
     .map(([p]) => p);
 
-  $("rank-tbody").innerHTML = list
+  $("rank-tbody").innerHTML = pageList
     .map((a, idx) => {
+      const rankNum = startIdx + idx + 1;
       const chgCls = (a.change_pct || 0) >= 0 ? "up" : "down";
       const chgTxt = a.change_pct == null ? "--" : `${a.change_pct >= 0 ? "+" : ""}${a.change_pct.toFixed(2)}%`;
       const pxTxt = a.price == null ? "--" : `${a.price.toLocaleString("es-ES", { maximumFractionDigits: 2 })} ${a.currency}`;
@@ -268,7 +276,7 @@ function renderRanking(data) {
       return `
       <tr data-sym="${a.symbol}">
         <td onclick="event.stopPropagation()"><input type="checkbox" class="port-chk" data-sym="${a.symbol}" ${state.portfolio.has(a.symbol) ? "checked" : ""} /></td>
-        <td class="muted">${idx + 1}</td>
+        <td class="muted">${rankNum}</td>
         <td class="asset-name"><strong>${a.symbol}</strong><span>${a.name}</span></td>
         <td>${a.market} · ${a.type}</td>
         <td>${a.sector} <span class="muted">(${a.sector_rank}/${a.sector_n})</span></td>
@@ -297,6 +305,33 @@ function renderRanking(data) {
       else state.portfolio.delete(chk.dataset.sym);
       renderPortfolioChips();
     });
+  });
+
+  $("pagination-bar").innerHTML = `
+    <span class="muted">Mostrando ${list.length ? startIdx + 1 : 0}–${Math.min(startIdx + state.pageSize, list.length)} de ${list.length} activos</span>
+    <div class="row-gap">
+      <label class="inline-field">Filas:
+        <select id="page-size-sel">
+          <option value="25" ${state.pageSize === 25 ? "selected" : ""}>25</option>
+          <option value="50" ${state.pageSize === 50 ? "selected" : ""}>50</option>
+          <option value="100" ${state.pageSize === 100 ? "selected" : ""}>100</option>
+        </select>
+      </label>
+      <button class="btn btn-secondary" id="prev-page-btn" ${state.page <= 1 ? "disabled" : ""}>← Anterior</button>
+      <span>Página <strong>${state.page}</strong> de <strong>${totalPages}</strong></span>
+      <button class="btn btn-secondary" id="next-page-btn" ${state.page >= totalPages ? "disabled" : ""}>Siguiente →</button>
+    </div>
+  `;
+  $("page-size-sel").addEventListener("change", (e) => {
+    state.pageSize = Number(e.target.value);
+    state.page = 1;
+    renderRanking(state.scores);
+  });
+  $("prev-page-btn").addEventListener("click", () => {
+    if (state.page > 1) { state.page -= 1; renderRanking(state.scores); }
+  });
+  $("next-page-btn").addEventListener("click", () => {
+    if (state.page < totalPages) { state.page += 1; renderRanking(state.scores); }
   });
 }
 
@@ -685,9 +720,9 @@ $("refresh-now-btn").addEventListener("click", () => {
   $("countdown-bar").style.width = "100%";
   refreshScores();
 });
-$("search-box").addEventListener("input", () => state.scores && renderRanking(state.scores));
-$("sector-filter").addEventListener("change", () => state.scores && renderRanking(state.scores));
-$("sp500-only").addEventListener("change", refreshScores);
+$("search-box").addEventListener("input", () => { state.page = 1; if (state.scores) renderRanking(state.scores); });
+$("sector-filter").addEventListener("change", () => { state.page = 1; if (state.scores) renderRanking(state.scores); });
+$("sp500-only").addEventListener("change", () => { state.page = 1; refreshScores(); });
 $("asset-select").addEventListener("change", (e) => {
   state.selectedSymbol = e.target.value;
   loadAsset(state.selectedSymbol);
